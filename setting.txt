@@ -1,0 +1,8 @@
+user_data_path=C:\Users\rmaru\AppData\Local\Google\Chrome\Profile 2
+profile_dir=Profile 2
+target_url=https://finance.naver.com/sise/sise_market_sum.nhn
+excel_path=C:\Users\rmaru\OneDrive\바탕 화면\zxc\dsadsa.xlsx
+primary_sheet_name=테스트
+primary_start_row=34
+secondary_sheet_name=테스트2
+secondary_start_row=60
