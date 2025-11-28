@@ -1,0 +1,5 @@
+chrome://version/
+
+https://demoqa.com/select-menu
+
+pyinstaller -w -F test.py
