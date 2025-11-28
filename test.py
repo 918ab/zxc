@@ -119,7 +119,7 @@ class WebScraperApp:
             },
             {
                 "type": "button", "name": "배송유형 Select All 클릭",
-                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[2]/div/div/div/div[1]/div/button[1]"
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[1]/div/div[1]/div/button[1]"
             },
 
             # 6. ExSD (11시 이후 전부 선택) - ⭐️ 특수 기능
