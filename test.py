@@ -75,15 +75,17 @@ class WebScraperApp:
             },
             {
                 "type": "button", "name": f"오늘 날짜({today_day}일) 선택",
-                # 달력 안에 있는 오늘 날짜 숫자를 찾아서 클릭 (만능 패턴)
                 "xpath": f"//td[contains(text(), '{today_day}')] | //a[contains(text(), '{today_day}')]"
             },
 
             # 2. 센터 선택 (Custom: 열기 -> 텍스트 클릭)
             {
-                "type": "custom", "name": "센터 선택",
+                "type": "custom", 
+                "name": "센터 선택",
+                # 버튼 내부의 div를 클릭 (사용자님 원본 경로 복구)
                 "open_xpath": "//*[@id='centerIdListContainer']/div/div/button",
-                "option_xpath": "//a[contains(text(), '{}')]", 
+                # ⭐️ li 태그 밑에 있는 a 태그의 텍스트를 찾음
+                "option_xpath": "//li/a[contains(text(), '{}')]", 
                 "value": "INC4" 
             },
 
@@ -121,14 +123,17 @@ class WebScraperApp:
             {
                 "type": "time_filter", "name": "ExSD (11시 이후 선택)",
                 "open_xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[3]/div/div[1]/button",
-                "start_hour": 11 # 11시부터 포함
+                "start_hour": 11
             },
 
             # 7. 단위 (Parcel 선택)
             {
-                "type": "custom", "name": "단위 (Parcel)",
+                "type": "custom", 
+                "name": "단위 (Parcel)",
+                # 버튼 내부의 div를 클릭 (사용자님 원본 경로 복구)
                 "open_xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[4]/div/div[1]/button",
-                "option_xpath": "//a[contains(text(), '{}')]",
+                # ⭐️ li 태그 밑에 있는 a 태그를 찾음
+                "option_xpath": "//li/a[contains(text(), '{}')]",
                 "value": "Parcel"
             }
         ]
