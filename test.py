@@ -7,6 +7,7 @@ import threading
 import os 
 from datetime import datetime
 
+# Selenium 및 라이브러리
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -36,10 +37,11 @@ class WebScraperApp:
 
     def __init__(self, master):
         self.master = master
-        master.title("웹 추출기")
+        master.title("웹 테이블 추출기 v4.3 (로그인 대기 기능)")
         master.geometry("950x850") 
         master.protocol("WM_DELETE_WINDOW", self.on_closing) 
 
+        # 스타일 설정
         self.style = ttk.Style()
         self.style.theme_use('clam') 
         self.style.configure('Green.TButton', font=('Malgun Gothic', 10, 'bold'), background='#28a745', foreground='white', borderwidth=1)
@@ -54,46 +56,39 @@ class WebScraperApp:
         self.current_table_index = 0 
         self.selection_window = None 
         self.log_text = None 
+        
+        # =========================================================================
+        # 🛠️ [사용자 설정 구간]
+        # =========================================================================
+        
+        # 1. 체크박스 설정
+        self.checkbox_name = 'none'
+        self.desired_checkboxes = []
 
-
-        #1. 체크박스 설정
-
-        self.checkbox_name = 'fieldIds'
-        self.desired_checkboxes = ['거래량', '시가총액', '현재가', '시가', '고가', '저가']
-        # today_date = datetime.now().strftime("%Y-%m-%d") "value": today_date
+        # 2. 드랍다운 및 버튼 설정
         self.dropdown_settings = [
-            # (1) Select Value
+            # 예시: 동행복권 설정 (필요에 따라 수정하세요)
             {
-                "type": "custom", "name": "Select Value",
-                "open_xpath": "//*[@id='withOptGroup']/div/div[2]/div",  
-                "option_xpath": "//div[contains(text(), '{}')]", "value": "Group 2, option 1"
+                "type": "standard", "name": "회차 구간 선택",
+                "target_id": "hdrwComb", "value": "1~600"               
             },
-            # (2) Select One
             {
-                "type": "custom", "name": "Select One",
-                "open_xpath": "//*[@id='selectOne']/div/div[1]",
-                "option_xpath": "//div[contains(text(), '{}')]", "value": "Dr."
+                "type": "standard", "name": "회차 번호 선택",
+                "target_id": "dwrNoList", "value": "312"               
             },
-            # (3) Old Style Menu
             {
-                "type": "standard", "name": "Old Style Menu",
-                "target_id": "oldSelectMenu", "value": "Blue"              
-            },
-            # (4) Multiselect Dropdown
-            {
-                "type": "multi", "name": "Multiselect Dropdown",
-                "open_xpath": "(//div[contains(@class, 'css-1hwfws3')])[3]",
-                "option_xpath": "//div[contains(text(), '{}')]",
-                "values": ["Green", "Black", "Red"]
+                "type": "button", "name": "조회 버튼",
+                "xpath": "//*[@id='searchBtn']" 
             }
         ]
-        
+        # =========================================================================
+
         settings = self._load_settings() 
 
         self.user_data_path = tk.StringVar(value=settings.get('user_data_path', r"C:\Users\rmaru\AppData\Local\Google\Chrome\Profile 2"))
         self.profile_dir = tk.StringVar(value=settings.get('profile_dir', "Profile 2"))
         
-        self.target_url = tk.StringVar(value=settings.get('target_url', "https://finance.naver.com/sise/sise_market_sum.nhn"))
+        self.target_url = tk.StringVar(value=settings.get('target_url', "https://dhlottery.co.kr/gameResult.do?method=byWin"))
         
         self.excel_path = tk.StringVar(value=settings.get('excel_path', r"C:\Users\rmaru\OneDrive\바탕 화면\zxc\dsadsa.xlsx")) 
         self.sheet_name = tk.StringVar(value=settings.get('primary_sheet_name', "테스트")) 
@@ -194,8 +189,20 @@ class WebScraperApp:
             self.main_button.config(state='normal', text="1. 시작하기")
             return
 
+        # ⭐️ 로그인 대기 (핵심 기능)
+        # 브라우저가 열린 상태에서 사용자가 직접 로그인할 수 있게 기다림
+        user_response = messagebox.askokcancel(
+            "🔒 로그인 / 준비 대기", 
+            "브라우저에서 로그인을 완료하거나,\n원하는 화면으로 이동한 뒤 [확인]을 눌러주세요.\n\n([취소]를 누르면 작업이 중단됩니다.)"
+        )
+
+        if not user_response:
+            self.update_log("🚫 사용자가 작업을 취소했습니다.", "WARNING")
+            self.main_button.config(state='normal', text="1. 시작하기")
+            return
+
+        # 사용자가 [확인]을 누르면 그제서야 설정 및 추출 시작
         self._configure_page_settings()
-        
         self.start_scraping()
         self.main_button.config(state='normal', text="1. 시작하기")
     
@@ -244,7 +251,6 @@ class WebScraperApp:
             except:
                 return False
 
-
     def _configure_page_settings(self):
         if not self.driver: return
         self.update_log("⚙️ 페이지 설정(드랍다운/버튼/체크박스) 시작...", "WARNING")
@@ -257,10 +263,7 @@ class WebScraperApp:
                 if dtype == "standard":
                     target_id = setting.get("target_id")
                     value_to_select = setting.get("value")
-                    
-                    select_elem = WebDriverWait(self.driver, 2).until(
-                        EC.presence_of_element_located((By.ID, target_id))
-                    )
+                    select_elem = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.ID, target_id)))
                     self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", select_elem)
                     sel = Select(select_elem)
                     try:
@@ -268,17 +271,13 @@ class WebScraperApp:
                         self.update_log(f"  👉 [Standard] '{name}': '{value_to_select}' 정확히 선택", "DETAIL")
                     except:
                         found = False
-                        count = 0
                         for opt in sel.options:
                             if value_to_select in opt.text:
                                 sel.select_by_visible_text(opt.text)
+                                self.update_log(f"  👉 [Standard] '{name}': '{opt.text}' (포함된 값) 선택", "DETAIL")
                                 found = True
-                                count += 1
-                        
-                        if found:
-                            self.update_log(f"  👉 [Standard] '{name}': '{value_to_select}' 포함된 항목 {count}개 모두 선택 완료", "DETAIL")
-                        else:
-                            raise Exception(f"'{value_to_select}'를 포함하는 옵션이 없습니다.")
+                                break 
+                        if not found: raise Exception(f"'{value_to_select}'를 포함하는 옵션이 없습니다.")
 
                 # [2] Custom Single
                 elif dtype == "custom":
@@ -303,7 +302,7 @@ class WebScraperApp:
                     if selected_items: self.update_log(f"  👉 [Multi] '{name}': {selected_items} 선택", "DETAIL")
                     else: raise Exception("옵션 없음")
                 
-                # ⭐️ [4] Button Click (여기 추가했습니다!)
+                # [4] Button Click
                 elif dtype == "button":
                     target_xpath = setting.get("xpath")
                     if self._quick_click(By.XPATH, target_xpath):
@@ -316,7 +315,6 @@ class WebScraperApp:
                 self.update_log(f"⚠️ [패스] '{name}' (설정 건너뜀)", "WARNING")
 
         self._internal_checkbox_logic()
-
         self.update_log("✅ 모든 페이지 설정 완료.", "SUCCESS")
 
     def _internal_checkbox_logic(self):
@@ -327,7 +325,6 @@ class WebScraperApp:
 
         try:
             chkboxs = self.driver.find_elements(By.NAME, self.checkbox_name)
-            
             if not chkboxs:
                 self.update_log(f"⚠️ [패스] 'CheckBox' (설정 건너뜀)", "WARNING")
                 return 
@@ -362,7 +359,6 @@ class WebScraperApp:
     def start_scraping(self):
         self.update_log("⏳ 테이블 탐색 중... (데이터 로딩 대기)", "WARNING")
         time.sleep(1)
-        
         self.all_tables = []
         try:
             try: WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.TAG_NAME, "table")))
@@ -445,8 +441,8 @@ class WebScraperApp:
             
             main_write_idx = max(USER_START_ROW - 1, main_current_rows)
             self.update_log(f"📍 '{USER_SHEET_NAME}' 저장 위치: {main_write_idx + 1}행", "DETAIL")
-
             
+            # 헤더 제거하고 데이터만 저장
             for idx, row in df_full.iterrows():
                 ws.write_row(main_write_idx + idx, 0, row.tolist(), fmt) 
                 
