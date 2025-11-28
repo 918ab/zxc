@@ -118,12 +118,8 @@ class WebScraperApp:
                 "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[1]/div/div[1]/button"
             },
             {
-                "type": "button", 
-                "name": "배송유형 Select All 클릭",
-                # [수정됨] 위치 대신 '글자'로 찾기
-                # 뜻: "Select All"이라는 글자가 포함된 버튼을 찾는데, 
-                #     혹시 여러 개일 수 있으니 화면에 보이는 것(2번째 혹은 마지막)을 노림
-                "xpath": "(//button[contains(., 'Select All')])[last()]"
+                "type": "button", "name": "정기배송 Select All 클릭",
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[1]/div/div[1]/div/button[1]"
             },
 
             # 6. ExSD (11시 이후 전부 선택) - ⭐️ 특수 기능
