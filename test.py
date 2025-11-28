@@ -37,11 +37,10 @@ class WebScraperApp:
 
     def __init__(self, master):
         self.master = master
-        master.title("웹 테이블 추출기 v4.3 (로그인 대기 기능)")
+        master.title("웹 테이블 추출기 v5.0 (물류센터 맞춤형)")
         master.geometry("950x850") 
         master.protocol("WM_DELETE_WINDOW", self.on_closing) 
 
-        # 스타일 설정
         self.style = ttk.Style()
         self.style.theme_use('clam') 
         self.style.configure('Green.TButton', font=('Malgun Gothic', 10, 'bold'), background='#28a745', foreground='white', borderwidth=1)
@@ -58,27 +57,79 @@ class WebScraperApp:
         self.log_text = None 
         
         # =========================================================================
-        # 🛠️ [사용자 설정 구간]
+        # 🛠️ [사용자 설정 구간] - 물류센터 설정 적용 완료
         # =========================================================================
         
-        # 1. 체크박스 설정
         self.checkbox_name = 'none'
         self.desired_checkboxes = []
 
-        # 2. 드랍다운 및 버튼 설정
+        # 오늘 날짜 (숫자만 추출, 예: 28)
+        today_day = datetime.now().strftime("%d").lstrip("0") 
+
         self.dropdown_settings = [
-            # 예시: 동행복권 설정 (필요에 따라 수정하세요)
+            
+            # 1. 날짜 선택 (달력 열기 -> 오늘 날짜 클릭)
             {
-                "type": "standard", "name": "회차 구간 선택",
-                "target_id": "hdrwComb", "value": "1~600"               
+                "type": "button", "name": "달력 열기",
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[1]/div[2]/div/div[1]/button/div"
             },
             {
-                "type": "standard", "name": "회차 번호 선택",
-                "target_id": "dwrNoList", "value": "312"               
+                "type": "button", "name": f"오늘 날짜({today_day}일) 선택",
+                # 달력 안에 있는 오늘 날짜 숫자를 찾아서 클릭 (만능 패턴)
+                "xpath": f"//td[contains(text(), '{today_day}')] | //a[contains(text(), '{today_day}')]"
+            },
+
+            # 2. 센터 선택 (Custom: 열기 -> 텍스트 클릭)
+            {
+                "type": "custom", "name": "센터 선택",
+                "open_xpath": "//*[@id='centerIdListContainer']/div/div/button/div",
+                "option_xpath": "//a[contains(text(), '{}')]", 
+                "value": "원하는센터이름" # ⚠️ 여기에 실제 센터 이름을 적으세요! (예: 동탄1센터)
+            },
+
+            # 3. 캠프 선택 (Select All)
+            {
+                "type": "button", "name": "캠프 드랍다운 열기",
+                "xpath": "//*[@id='campCodeListContainer']/div/div/button/div/div"
             },
             {
-                "type": "button", "name": "조회 버튼",
-                "xpath": "//*[@id='searchBtn']" 
+                "type": "button", "name": "캠프 Select All 클릭",
+                "xpath": "//*[@id='campCodeListContainer']/div/div/div/div[2]/div/button[1]"
+            },
+
+            # 4. 정기배송 (Select All)
+            {
+                "type": "button", "name": "정기배송 드랍다운 열기",
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[2]/div/div/button"
+            },
+            {
+                "type": "button", "name": "정기배송 Select All 클릭",
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[2]/div/div/div/div[1]/div/button[1]"
+            },
+
+            # 5. 배송유형 (Select All)
+            {
+                "type": "button", "name": "배송유형 드랍다운 열기",
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[1]/div/div[1]/button"
+            },
+            {
+                "type": "button", "name": "배송유형 Select All 클릭",
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[2]/div/div/div/div[1]/div/button[1]"
+            },
+
+            # 6. ExSD (11시 이후 전부 선택) - ⭐️ 특수 기능
+            {
+                "type": "time_filter", "name": "ExSD (11시 이후 선택)",
+                "open_xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[3]/div/div[1]/button",
+                "start_hour": 11 # 11시부터 포함
+            },
+
+            # 7. 단위 (Parcel 선택)
+            {
+                "type": "custom", "name": "단위 (Parcel)",
+                "open_xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[4]/div/div[1]/button",
+                "option_xpath": "//a[contains(text(), '{}')]",
+                "value": "Parcel"
             }
         ]
         # =========================================================================
@@ -87,8 +138,8 @@ class WebScraperApp:
 
         self.user_data_path = tk.StringVar(value=settings.get('user_data_path', r"C:\Users\rmaru\AppData\Local\Google\Chrome\Profile 2"))
         self.profile_dir = tk.StringVar(value=settings.get('profile_dir', "Profile 2"))
-        
-        self.target_url = tk.StringVar(value=settings.get('target_url', "https://dhlottery.co.kr/gameResult.do?method=byWin"))
+        # 실제 사이트 URL로 변경해주세요
+        self.target_url = tk.StringVar(value=settings.get('target_url', "https://your-logistics-site.com"))
         
         self.excel_path = tk.StringVar(value=settings.get('excel_path', r"C:\Users\rmaru\OneDrive\바탕 화면\zxc\dsadsa.xlsx")) 
         self.sheet_name = tk.StringVar(value=settings.get('primary_sheet_name', "테스트")) 
@@ -189,19 +240,11 @@ class WebScraperApp:
             self.main_button.config(state='normal', text="1. 시작하기")
             return
 
-        # ⭐️ 로그인 대기 (핵심 기능)
-        # 브라우저가 열린 상태에서 사용자가 직접 로그인할 수 있게 기다림
-        user_response = messagebox.askokcancel(
-            "🔒 로그인 / 준비 대기", 
-            "브라우저에서 로그인을 완료하거나,\n원하는 화면으로 이동한 뒤 [확인]을 눌러주세요.\n\n([취소]를 누르면 작업이 중단됩니다.)"
-        )
-
+        user_response = messagebox.askokcancel("준비", "로그인 후 원하는 페이지에서 [확인]을 눌러주세요.")
         if not user_response:
-            self.update_log("🚫 사용자가 작업을 취소했습니다.", "WARNING")
             self.main_button.config(state='normal', text="1. 시작하기")
             return
 
-        # 사용자가 [확인]을 누르면 그제서야 설정 및 추출 시작
         self._configure_page_settings()
         self.start_scraping()
         self.main_button.config(state='normal', text="1. 시작하기")
@@ -253,34 +296,13 @@ class WebScraperApp:
 
     def _configure_page_settings(self):
         if not self.driver: return
-        self.update_log("⚙️ 페이지 설정(드랍다운/버튼/체크박스) 시작...", "WARNING")
+        self.update_log("⚙️ 페이지 설정 시작...", "WARNING")
 
         for setting in self.dropdown_settings:
             name = setting.get("name", "Unknown")
             dtype = setting.get("type", "custom")
             try:
-                # [1] Standard Select
-                if dtype == "standard":
-                    target_id = setting.get("target_id")
-                    value_to_select = setting.get("value")
-                    select_elem = WebDriverWait(self.driver, 2).until(EC.presence_of_element_located((By.ID, target_id)))
-                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", select_elem)
-                    sel = Select(select_elem)
-                    try:
-                        sel.select_by_visible_text(value_to_select)
-                        self.update_log(f"  👉 [Standard] '{name}': '{value_to_select}' 정확히 선택", "DETAIL")
-                    except:
-                        found = False
-                        for opt in sel.options:
-                            if value_to_select in opt.text:
-                                sel.select_by_visible_text(opt.text)
-                                self.update_log(f"  👉 [Standard] '{name}': '{opt.text}' (포함된 값) 선택", "DETAIL")
-                                found = True
-                                break 
-                        if not found: raise Exception(f"'{value_to_select}'를 포함하는 옵션이 없습니다.")
-
-                # [2] Custom Single
-                elif dtype == "custom":
+                if dtype == "custom":
                     open_xpath = setting.get("open_xpath")
                     option_xpath_fmt = setting.get("option_xpath")
                     value_to_select = setting.get("value")
@@ -289,20 +311,6 @@ class WebScraperApp:
                     if not self._quick_click(By.XPATH, final_xpath): raise Exception("옵션 없음")
                     self.update_log(f"  👉 [Custom] '{name}': {value_to_select} 선택", "DETAIL")
 
-                # [3] Multi Select
-                elif dtype == "multi":
-                    open_xpath = setting.get("open_xpath")
-                    option_xpath_fmt = setting.get("option_xpath")
-                    values_list = setting.get("values", [])
-                    if not self._quick_click(By.XPATH, open_xpath): raise Exception("버튼 없음")
-                    selected_items = []
-                    for val in values_list:
-                        final_xpath = option_xpath_fmt.format(val)
-                        if self._quick_click(By.XPATH, final_xpath): selected_items.append(val)
-                    if selected_items: self.update_log(f"  👉 [Multi] '{name}': {selected_items} 선택", "DETAIL")
-                    else: raise Exception("옵션 없음")
-                
-                # [4] Button Click
                 elif dtype == "button":
                     target_xpath = setting.get("xpath")
                     if self._quick_click(By.XPATH, target_xpath):
@@ -310,54 +318,44 @@ class WebScraperApp:
                     else:
                         raise Exception("버튼 클릭 실패")
 
-                time.sleep(0.5) 
-            except Exception:
-                self.update_log(f"⚠️ [패스] '{name}' (설정 건너뜀)", "WARNING")
+                # ⭐️ [ExSD 전용] 11시 이후 시간 자동 선택
+                elif dtype == "time_filter":
+                    open_xpath = setting.get("open_xpath")
+                    start_hour = setting.get("start_hour", 11)
+                    
+                    # 1. 드랍다운 열기
+                    if not self._quick_click(By.XPATH, open_xpath): raise Exception("드랍다운 열기 실패")
+                    time.sleep(0.5) # 목록 로딩 대기
 
-        self._internal_checkbox_logic()
+                    # 2. 모든 'a' 태그 가져오기 (시간 목록)
+                    # (드랍다운이 열린 상태에서 화면에 보이는 a태그들을 찾습니다)
+                    options = self.driver.find_elements(By.TAG_NAME, 'a')
+                    selected_count = 0
+                    
+                    for opt in options:
+                        text = opt.text.strip() # 예: "13:00"
+                        if ":" in text:
+                            try:
+                                hour = int(text.split(":")[0]) # "13" -> 13
+                                if hour >= start_hour:
+                                    # 클릭 시도 (이미 선택된건지 확인 필요하면 class 확인 로직 추가 가능)
+                                    self.driver.execute_script("arguments[0].click();", opt)
+                                    selected_count += 1
+                            except: pass
+                    
+                    if selected_count > 0:
+                        self.update_log(f"  ⏱️ [Time] {start_hour}시 이후 항목 {selected_count}개 선택", "DETAIL")
+                    else:
+                        self.update_log(f"  ⚠️ [Time] {start_hour}시 이후 항목이 없습니다.", "WARNING")
+
+                time.sleep(0.5) 
+            except Exception as e:
+                self.update_log(f"⚠️ [패스] '{name}' ({e})", "WARNING")
+
         self.update_log("✅ 모든 페이지 설정 완료.", "SUCCESS")
 
-    def _internal_checkbox_logic(self):
-        try:
-            menu_btn = WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'a.btn_item_choice')))
-            menu_btn.click()
-        except: pass
-
-        try:
-            chkboxs = self.driver.find_elements(By.NAME, self.checkbox_name)
-            if not chkboxs:
-                self.update_log(f"⚠️ [패스] 'CheckBox' (설정 건너뜀)", "WARNING")
-                return 
-
-            self.update_log(f"📋 체크박스({len(chkboxs)}개) 설정 중...", "DETAIL")
-            
-            for chkbox in chkboxs:
-                try:
-                    parent = chkbox.find_element(By.XPATH, '..')
-                    label = parent.find_element(By.TAG_NAME, 'label')
-                    if label.text not in self.desired_checkboxes:
-                        if chkbox.is_selected(): chkbox.click()
-                except: pass
-            
-            for chkbox in chkboxs:
-                try:
-                    parent = chkbox.find_element(By.XPATH, '..')
-                    label = parent.find_element(By.TAG_NAME, 'label')
-                    if label.text in self.desired_checkboxes:
-                        if not chkbox.is_selected(): chkbox.click()
-                except: pass
-            
-            try:
-                button = self.driver.find_element(By.XPATH, '//a[@href="javascript:fieldSubmit()"]')
-                button.click()
-                time.sleep(1)
-            except: pass
-            
-            self.update_log("  👉 체크박스 설정 적용됨", "DETAIL")
-        except: pass
-
     def start_scraping(self):
-        self.update_log("⏳ 테이블 탐색 중... (데이터 로딩 대기)", "WARNING")
+        self.update_log("⏳ 테이블 탐색 중...", "WARNING")
         time.sleep(1)
         self.all_tables = []
         try:
@@ -442,7 +440,6 @@ class WebScraperApp:
             main_write_idx = max(USER_START_ROW - 1, main_current_rows)
             self.update_log(f"📍 '{USER_SHEET_NAME}' 저장 위치: {main_write_idx + 1}행", "DETAIL")
             
-            # 헤더 제거하고 데이터만 저장
             for idx, row in df_full.iterrows():
                 ws.write_row(main_write_idx + idx, 0, row.tolist(), fmt) 
                 
