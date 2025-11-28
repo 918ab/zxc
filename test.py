@@ -119,10 +119,9 @@ class WebScraperApp:
             },
             {
                 "type": "button", "name": "정기배송 Select All 클릭",
-                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[1]/div/div[1]/div/button[1]"
+                "xpath": "//div[contains(@class, 'show')]//button[contains(., 'Select All')]"
             },
 
-            # 6. ExSD (11시 이후 전부 선택) - ⭐️ 특수 기능
             {
                 "type": "time_filter", "name": "ExSD (11시 이후 선택)",
                 "open_xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[3]/div/div[1]/button",
@@ -133,10 +132,8 @@ class WebScraperApp:
             {
                 "type": "custom", 
                 "name": "단위 (Parcel)",
-                # 1. 버튼: 여기도 끝에 /div 제거
                 "open_xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[4]/div/div[1]/button",
                 
-                # 2. 옵션: 위와 동일한 강력한 XPath 적용
                 "option_xpath": "//ul//li//a[contains(., '{}')]",
                 
                 "value": "Parcel"
