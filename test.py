@@ -82,9 +82,9 @@ class WebScraperApp:
             # 2. 센터 선택 (Custom: 열기 -> 텍스트 클릭)
             {
                 "type": "custom", "name": "센터 선택",
-                "open_xpath": "//*[@id='centerIdListContainer']/div/div/button/div",
+                "open_xpath": "//*[@id='centerIdListContainer']/div/div/button",
                 "option_xpath": "//a[contains(text(), '{}')]", 
-                "value": "INC4" # ⚠️ 여기에 실제 센터 이름을 적으세요! (예: 동탄1센터)
+                "value": "INC4" 
             },
 
             # 3. 캠프 선택 (Select All)
