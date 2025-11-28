@@ -82,11 +82,14 @@ class WebScraperApp:
             {
                 "type": "custom", 
                 "name": "센터 선택",
-                # 버튼 내부의 div를 클릭 (사용자님 원본 경로 복구)
+                # 1. 버튼: 끝에 /div를 빼고 button 태그를 직접 클릭하는 게 더 정확합니다.
                 "open_xpath": "//*[@id='centerIdListContainer']/div/div/button",
-                # ⭐️ li 태그 밑에 있는 a 태그의 텍스트를 찾음
-                "option_xpath": "//li/a[contains(text(), '{}')]", 
-                "value": "INC4" 
+                
+                # 2. 옵션: ul 태그 밑에 있는 li 밑에 있는 a를 찾되, 
+                # contains(., '{}')를 써서 공백이나 자식 태그 무시하고 글자를 찾습니다.
+                "option_xpath": "//ul//li//a[contains(., '{}')]", 
+                
+                "value": "INC4" # ⚠️ 화면에 보이는 글자 그대로! (띄어쓰기 주의)
             },
 
             # 3. 캠프 선택 (Select All)
@@ -130,10 +133,12 @@ class WebScraperApp:
             {
                 "type": "custom", 
                 "name": "단위 (Parcel)",
-                # 버튼 내부의 div를 클릭 (사용자님 원본 경로 복구)
+                # 1. 버튼: 여기도 끝에 /div 제거
                 "open_xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[4]/div/div[1]/button",
-                # ⭐️ li 태그 밑에 있는 a 태그를 찾음
-                "option_xpath": "//li/a[contains(text(), '{}')]",
+                
+                # 2. 옵션: 위와 동일한 강력한 XPath 적용
+                "option_xpath": "//ul//li//a[contains(., '{}')]",
+                
                 "value": "Parcel"
             }
         ]
