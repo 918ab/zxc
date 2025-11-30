@@ -82,14 +82,9 @@ class WebScraperApp:
             {
                 "type": "custom", 
                 "name": "센터 선택",
-                # 1. 버튼: 끝에 /div를 빼고 button 태그를 직접 클릭하는 게 더 정확합니다.
                 "open_xpath": "//*[@id='centerIdListContainer']/div/div/button",
-                
-                # 2. 옵션: ul 태그 밑에 있는 li 밑에 있는 a를 찾되, 
-                # contains(., '{}')를 써서 공백이나 자식 태그 무시하고 글자를 찾습니다.
                 "option_xpath": "//ul//li//a[contains(., '{}')]", 
-                
-                "value": "INC4" # ⚠️ 화면에 보이는 글자 그대로! (띄어쓰기 주의)
+                "value": "INC4"
             },
 
             # 3. 캠프 선택 (Select All)
@@ -117,10 +112,42 @@ class WebScraperApp:
                 "type": "button", "name": "배송유형 드랍다운 열기",
                 "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[1]/div/div[1]/button"
             },
+
+            # ======================================
             {
-                "type": "button", "name": "정기배송 Select All 클릭",
+                "type": "button", 
+                "name": "TEST 1. 사용자 원본 경로",
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[1]/div/div[1]/div/button[1]"
+            },
+
+            # [테스트 2] 화면상 'Select All' 글자가 있는 2번째 버튼
+            {
+                "type": "button", 
+                "name": "TEST 2. 2번째 Select All 버튼",
+                "xpath": "(//button[contains(., 'Select All')])[2]"
+            },
+
+            # [테스트 3] 'Select All' 글자가 있는 마지막 버튼 (가장 최근에 뜬거)
+            {
+                "type": "button", 
+                "name": "TEST 3. 마지막 Select All 버튼",
+                "xpath": "(//button[contains(., 'Select All')])[last()]"
+            },
+
+            # [테스트 4] 현재 열려있는(show) 메뉴 안의 버튼
+            {
+                "type": "button", 
+                "name": "TEST 4. 열린 메뉴(show) 안의 버튼",
                 "xpath": "//div[contains(@class, 'show')]//button[contains(., 'Select All')]"
             },
+
+            # [테스트 5] 열기 버튼 바로 옆(형제) 박스 안의 버튼 (추천)
+            {
+                "type": "button", 
+                "name": "TEST 5. 형제 요소(following-sibling)",
+                "xpath": "//*[@id='searchForm']/div/div[1]/div[2]/div[1]/div/div[1]/button/following-sibling::div//button[1]"
+            },
+            #==============================================================
 
             {
                 "type": "time_filter", "name": "ExSD (11시 이후 선택)",
@@ -332,28 +359,49 @@ class WebScraperApp:
                     
                     # 1. 드랍다운 열기
                     if not self._quick_click(By.XPATH, open_xpath): raise Exception("드랍다운 열기 실패")
-                    time.sleep(0.5) # 목록 로딩 대기
+                    time.sleep(0.5) 
 
-                    # 2. 모든 'a' 태그 가져오기 (시간 목록)
-                    # (드랍다운이 열린 상태에서 화면에 보이는 a태그들을 찾습니다)
-                    options = self.driver.find_elements(By.TAG_NAME, 'a')
+                    # 2. 옵션 찾기 (시간 정보가 있는 모든 요소)
+                    try:
+                        menu_container = self.driver.find_element(By.XPATH, open_xpath + "/following-sibling::div")
+                        options = menu_container.find_elements(By.XPATH, ".//*[contains(text(), ':')]")
+                    except:
+                        options = self.driver.find_elements(By.XPATH, "//a[contains(text(), ':')]")
+
                     selected_count = 0
                     
+                    # 3. 하나씩 검사하면서 조건 맞으면 무조건 클릭 (break 없음!)
                     for opt in options:
-                        text = opt.text.strip() # 예: "13:00"
-                        if ":" in text:
-                            try:
-                                hour = int(text.split(":")[0]) # "13" -> 13
-                                if hour >= start_hour:
-                                    # 클릭 시도 (이미 선택된건지 확인 필요하면 class 확인 로직 추가 가능)
-                                    self.driver.execute_script("arguments[0].click();", opt)
-                                    selected_count += 1
-                            except: pass
-                    
+                        try:
+                            text = opt.text.strip() # 예: "2025-11-30 13:00:05 (WAVE1)"
+                            
+                            # 시간 추출 로직
+                            parts = text.split()
+                            target_hour = -1
+                            
+                            for part in parts:
+                                if ":" in part and part.count(":") >= 1:
+                                    try:
+                                        target_hour = int(part.split(":")[0])
+                                        break # (주의) 이건 글자 파싱을 멈추는거지, 옵션 선택을 멈추는 게 아님!
+                                    except: continue
+                            
+                            # 11시 이상이면 -> 클릭!
+                            if target_hour >= start_hour:
+                                self.driver.execute_script("arguments[0].click();", opt)
+                                selected_count += 1
+                                # 멈추지 않고 다음 옵션으로 넘어감 (Loop 계속됨)
+                                
+                        except Exception as inner_e:
+                            pass # 하나 클릭하다 에러 나도 멈추지 말고 다음 거 계속 시도
+                            
                     if selected_count > 0:
-                        self.update_log(f"  ⏱️ [Time] {start_hour}시 이후 항목 {selected_count}개 선택", "DETAIL")
+                        self.update_log(f"  ⏱️ [Time] {start_hour}시 이후 항목 {selected_count}개 싹 다 선택 완료!", "DETAIL")
                     else:
                         self.update_log(f"  ⚠️ [Time] {start_hour}시 이후 항목이 없습니다.", "WARNING")
+
+                time.sleep(0.5) 
+            except Exception as e:
 
                 time.sleep(0.5) 
             except Exception as e:
